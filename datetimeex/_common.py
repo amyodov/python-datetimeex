@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import numbers, sys
-from datetime import date, datetime, time, timedelta, tzinfo
+from datetime import date, datetime, time, timedelta, tzinfo as tzinfo_class
 
 MICROSECONDS_IN_SECOND = 1000000
 MICROSECONDS_IN_MINUTE = MICROSECONDS_IN_SECOND * 60
@@ -14,7 +14,7 @@ _PY3K = (sys.version_info.major >= 3)
 
 def t_to_mus(t):
     """
-    Convert a datetime.time object to microseconds elapsed since the midnight.
+    Convert a datetime.time to microseconds elapsed since the midnight.
 
     Under Python 3.x, this function has two synonims:
     t_to_mus() and t_to_µs().
@@ -39,10 +39,11 @@ if _PY3K:
     exec("t_to_µs = t_to_mus")
 
 
-def mus_to_t(microseconds):
+def mus_to_t(microseconds, tzinfo=None):
     """
     Convert the number of microseconds elapsed since the midnight
-    to datetime.time object.
+    to datetime.time.
+    If tzinfo argument is passed, it is written as is to the datetime.time.
 
     Sub-microsecond precision may be lost due to inherent storage limitations.
     Also, if the number of microseconds is higher than the number of microseconds
@@ -62,13 +63,16 @@ def mus_to_t(microseconds):
     True
     """
     assert isinstance(microseconds, numbers.Number), repr(microseconds)
+    assert tzinfo is None or isinstance(tzinfo, tzinfo_class), repr(tzinfo)
 
     s, _ms = divmod(int(microseconds), MICROSECONDS_IN_SECOND)
     m, _s = divmod(s, 60) # 60 seconds in a minute
     h, _m = divmod(m, 60) # 60 minutes in an hour
     _h = h % 24 # 24 hours in a day
 
-    return time(hour = _h, minute = _m, second = _s, microsecond = _ms)
+    return time(hour = _h, minute = _m,
+                second = _s, microsecond = _ms,
+                tzinfo = tzinfo)
 
 if _PY3K:
     exec("µs_to_t = mus_to_t")
@@ -76,7 +80,7 @@ if _PY3K:
 
 def td_to_mus(td):
     """
-    Convert a datetime.timedelta object to microseconds.
+    Convert a datetime.timedelta to microseconds.
 
     Under Python 3.x, this function has two synonims:
     td_to_mus() and td_to_µs().
@@ -100,7 +104,7 @@ if _PY3K:
 
 def mus_to_td(microseconds):
     """
-    Convert an interval (in microseconds) to datetime.timedelta object.
+    Convert an interval (in microseconds) to datetime.timedelta.
 
     Sub-microsecond precision may be lost due to inherent storage limitations.
 
@@ -125,7 +129,7 @@ if _PY3K:
     exec("µs_to_td = mus_to_td")
 
 
-class DummyTZInfo(tzinfo):
+class DummyTZInfo(tzinfo_class):
     def __repr__(self):
         return "<DummyTZInfo>"
 
