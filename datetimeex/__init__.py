@@ -1,6 +1,6 @@
 #!/usr/bin/python
 """
-The expanded versions of standard Python datetime/timedelta classes,
+The expanded versions of standard Python date/time-related classes,
 capable for more operations.
 
 Requires Python >= 2.6 (including Python 3.x).
