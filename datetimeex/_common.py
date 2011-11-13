@@ -58,6 +58,9 @@ def mus_to_t(microseconds, tzinfo=None):
     >>> mus_to_t(11655000092.0002)
     datetime.time(3, 14, 15, 92)
 
+    >>> mus_to_t(11655000092.0002, tzinfo=DummyTZInfo())
+    datetime.time(3, 14, 15, 92, tzinfo=<DummyTZInfo>)
+
     >>> # Test µs_to_td() in Python 3.x only
     >>> not _PY3K or eval("µs_to_t(11655000092) == time(3, 14, 15, 92)")
     True

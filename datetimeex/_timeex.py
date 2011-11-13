@@ -3,7 +3,7 @@
 
 from __future__ import division
 import numbers
-from datetime import date, datetime, time, timedelta
+from datetime import date, datetime, time, timedelta, tzinfo as tzinfo_class
 from fractions import Fraction
 
 from _common import (MICROSECONDS_IN_SECOND, MICROSECONDS_IN_MINUTE,
@@ -63,8 +63,6 @@ class TimeEx(time):
                                tzinfo)
 
 
-    FORMAT_STRING = "%H:%M:%S.%f"
-
     def as_time(self):
         """
         Convert the TimeEx to the new datetime.time
@@ -76,6 +74,9 @@ class TimeEx(time):
 
         >>> TimeEx(3, 14, 15, 92).as_time()
         datetime.time(3, 14, 15, 92)
+
+        >>> TimeEx(3, 14, 15, 92, DummyTZInfo()).as_time()
+        datetime.time(3, 14, 15, 92, tzinfo=<DummyTZInfo>)
         """
         return time(self.hour, self.minute,
                     self.second, self.microsecond,
@@ -122,10 +123,11 @@ class TimeEx(time):
 
 
     @classmethod
-    def from_microseconds(cls, microseconds):
+    def from_microseconds(cls, microseconds, tzinfo=None):
         """
         Given the number of microseconds elapsed since the midnight,
-        create the appropriate TimeEx object.
+        create the appropriate TimeEx object. If tzinfo argument is passed,
+        it is written as is to the TimeEx.
 
         Sub-microsecond precision may be lost due to inherent storage limitations.
         Also, if the number of microseconds is higher than the number of microseconds
@@ -138,6 +140,8 @@ class TimeEx(time):
         TimeEx(3, 14, 15, 92)
         >>> TimeEx.from_microseconds(11655000092.003)
         TimeEx(3, 14, 15, 92)
+        >>> TimeEx.from_microseconds(11655000092.003, tzinfo=DummyTZInfo())
+        TimeEx(3, 14, 15, 92, tzinfo=<DummyTZInfo>)
 
         # Test from_µs() in Python 3.x only
         >>> not _PY3K or eval("TimeEx.from_µs(11655000092) == \
@@ -145,37 +149,82 @@ class TimeEx(time):
         True
 
         @type microseconds: numbers.Number
+        @type tzinfo: NoneType, tzinfo
 
         @rtype: TimeEx
         """
         assert isinstance(microseconds, numbers.Number), repr(microseconds)
+        assert tzinfo is None or isinstance(tzinfo, tzinfo_class), repr(tzinfo)
 
-        return cls.from_time(mus_to_t(microseconds))
+        return cls.from_time(mus_to_t(microseconds, tzinfo=tzinfo))
 
     if _PY3K:
         exec("from_µs = from_microseconds")
 
 
-##    def __add__(self, td):
-#        """
-#        Add a datetime.timedelta to the TimeEx
-#        (with possible wrapping at the midnight).
-#
-#        >>> TimeEx(23, 44, 55) + timedelta(hours = 3, minutes = 20)
-#        TimeEx(3, 4, 55)
-#        """
-#        assert isinstance(td, timedelta), repr(td)
-#
-#        return TimeEx.from_microseconds(self.in_microseconds + td_to_mus(td))
+    def __add__(self, summand):
+        """
+        Add this TimeEx to a datetime.timedelta
+        (with possible wrapping at the midnight).
+
+        >>> TimeEx(23, 44, 55) + timedelta(hours=3, minutes=20)
+        TimeEx(3, 4, 55)
+        >>> TimeEx(23, 44, 55, tzinfo=DummyTZInfo()) + \
+            timedelta(hours=3, minutes=20)
+        TimeEx(3, 4, 55, tzinfo=<DummyTZInfo>)
+
+        @type summand: timedelta
+        @rtype: TimeEx
+        """
+        if isinstance(summand, timedelta):
+            return TimeEx.from_microseconds(self.in_microseconds + td_to_mus(summand),
+                                            tzinfo=self.tzinfo)
+        else:
+            raise NotImplementedError("{0!r} + {1!r}".format(self, summand))
+
+    __radd__ = __add__
 
 
-#    def __sub__(self, td):
+    def __sub__(self, subtrahend):
+        """
+        Subtract a datetime.time or datetime.timedelta
+        (with possible wrapping at the midnight)
+        from the TimeEx.
+
+        Whenever the subtrahend is the datetime.time,
+        the result is a TimeDeltaEx.
+
+        Whenever the subtrahend is the datetime.timedelta,
+        the result is a TimeEx.
+
+        >>> TimeEx(3, 4, 15, 92) - timedelta(0, 2, 71, 82)
+        TimeEx(3, 4, 12, 918021)
+        >>> TimeEx(3, 4, 15, 92) - timedelta(2, 71, 82, 81)
+        TimeEx(3, 3, 3, 919010)
+        >>> TimeEx(3, 4, 15, 92, tzinfo=DummyTZInfo()) - timedelta(2, 71, 82, 81)
+        TimeEx(3, 3, 3, 919010, tzinfo=<DummyTZInfo>)
+
+        @type subtrahend: time, timedelta
+        @rtype: TimeEx, TimeDeltaEx
+        """
+        # TODO: HOW TO SUBTRACT DATETIME.TIME, ESPECIALLY TZ-AWARE?
+        if isinstance(subtrahend, timedelta):
+            return TimeEx.from_microseconds(self.in_microseconds - td_to_mus(subtrahend),
+                                            tzinfo=self.tzinfo)
+        else:
+            raise NotImplementedError("{0!r} - {1!r}".format(self, subtrahend))
+
+
+#    def __rsub__(self, td):
 #        """
 #        Subtract a datetime.timedelta from the TimeEx
 #        (with possible wrapping at the midnight).
 #
 #        >>> TimeEx(3, 4, 55) - timedelta(hours = 3, minutes = 20)
 #        TimeEx(23, 44, 55)
+#
+#        @type summand: timedelta
+#        @rtype: TimeEx
 #        """
 #        assert isinstance(td, timedelta), repr(td)
 #

@@ -8,8 +8,8 @@ from fractions import Fraction
 
 from _common import (MICROSECONDS_IN_SECOND, MICROSECONDS_IN_MINUTE,
                      MICROSECONDS_IN_HOUR, MICROSECONDS_IN_DAY,
-                     td_to_mus, mus_to_td,
-                     _PY3K)
+                     t_to_mus, mus_to_t, td_to_mus, mus_to_td,
+                     _PY3K, DummyTZInfo)
 from _timeex import TimeEx
 
 
@@ -137,7 +137,7 @@ class TimeDeltaEx(timedelta, numbers.Real):
         """
         The number of seconds in the time interval.
 
-        As the object may have sub-second precision, to represent
+        As the interval may have sub-second precision, to represent
         as the number of seconds this property provides a fractions.Fraction.
 
         >>> TimeDeltaEx(3, 14, 15).in_seconds
@@ -163,13 +163,13 @@ class TimeDeltaEx(timedelta, numbers.Real):
         For dividing TimeDeltaEx by a number, the result will be a TimeDeltaEx
         (the precision may be lost though).
 
-        >>> TimeDeltaEx(seconds = 5) / timedelta(seconds = 2)
+        >>> TimeDeltaEx(seconds=5) / timedelta(seconds=2)
         Fraction(5, 2)
 
-        >>> TimeDeltaEx(seconds = 5) / 4
+        >>> TimeDeltaEx(seconds=5) / 4
         TimeDeltaEx(0, 1, 250000)
 
-        >>> TimeDeltaEx(microseconds = 75) / 2.5
+        >>> TimeDeltaEx(microseconds=75) / 2.5
         TimeDeltaEx(0, 0, 30)
 
         @type divisor: timedelta, numbers.Number
@@ -192,7 +192,7 @@ class TimeDeltaEx(timedelta, numbers.Real):
         The dividend must be a datetime.timedelta.
         The result is a ratio.
 
-        >>> timedelta(seconds = 5) / TimeDeltaEx(seconds = 2)
+        >>> timedelta(seconds=5) / TimeDeltaEx(seconds=2)
         Fraction(5, 2)
 
         @type dividend: timedelta
@@ -216,11 +216,11 @@ class TimeDeltaEx(timedelta, numbers.Real):
         For dividing TimeDeltaEx by a number, the result will be a TimeDeltaEx
         (the precision may be lost though).
 
-        >>> TimeDeltaEx(seconds = 5) // timedelta(seconds = 2)
+        >>> TimeDeltaEx(seconds=5) // timedelta(seconds=2)
         2
-        >>> TimeDeltaEx(seconds = 5) // 4
+        >>> TimeDeltaEx(seconds=5) // 4
         TimeDeltaEx(0, 1, 250000)
-        >>> TimeDeltaEx(microseconds = 75) // 2.6
+        >>> TimeDeltaEx(microseconds=75) // 2.6
         TimeDeltaEx(0, 0, 28)
 
         @type divisor: timedelta, numbers.Number
@@ -243,7 +243,7 @@ class TimeDeltaEx(timedelta, numbers.Real):
         The dividend must be a datetime.timedelta (or any compatible subclass).
         The result is a number.
 
-        >>> timedelta(seconds = 5) // TimeDeltaEx(seconds = 2)
+        >>> timedelta(seconds=5) // TimeDeltaEx(seconds=2)
         2
 
         @type dividend: timedelta
@@ -264,7 +264,7 @@ class TimeDeltaEx(timedelta, numbers.Real):
         The modulo for dividing TimeDeltaEx by a regular number
         is not defined.
 
-        >>> TimeDeltaEx(seconds = 42) % timedelta(seconds = 11)
+        >>> TimeDeltaEx(seconds=42) % timedelta(seconds=11)
         TimeDeltaEx(0, 9)
 
         @type divisor: timedelta
@@ -287,7 +287,7 @@ class TimeDeltaEx(timedelta, numbers.Real):
         The modulo for dividing any other type by this TimeDeltaEx
         is not defined.
 
-        >>> timedelta(seconds = 42) % TimeDeltaEx(seconds = 11)
+        >>> timedelta(seconds=42) % TimeDeltaEx(seconds=11)
         TimeDeltaEx(0, 9)
 
         @type dividend: timedelta
@@ -307,7 +307,7 @@ class TimeDeltaEx(timedelta, numbers.Real):
         Even though the TimeDeltaEx may be divided to the regular number,
         the modulo for such operation cannot be calculated.
 
-        >>> divmod(TimeDeltaEx(seconds = 42), timedelta(seconds = 11))
+        >>> divmod(TimeDeltaEx(seconds=42), timedelta(seconds=11))
         (3, TimeDeltaEx(0, 9))
 
         @type divisor: timedelta
@@ -326,7 +326,7 @@ class TimeDeltaEx(timedelta, numbers.Real):
         Calculate both the result of division and the modulo
         for division of some datetime.timedelta by this TimeDeltaEx.
 
-        >>> divmod(timedelta(seconds = 42), TimeDeltaEx(seconds = 11))
+        >>> divmod(timedelta(seconds=42), TimeDeltaEx(seconds=11))
         (3, TimeDeltaEx(0, 9))
 
         @type dividend: timedelta
@@ -344,16 +344,16 @@ class TimeDeltaEx(timedelta, numbers.Real):
 
         The sub-microsecond precision may be lost.
 
-        >>> TimeDeltaEx(seconds = 5) * 5
+        >>> TimeDeltaEx(seconds=5) * 5
         TimeDeltaEx(0, 25)
-        >>> 5 * TimeDeltaEx(seconds = 5)
+        >>> 5 * TimeDeltaEx(seconds=5)
         TimeDeltaEx(0, 25)
-        >>> TimeDeltaEx(microseconds = 50) * 0.77
+        >>> TimeDeltaEx(microseconds=50) * 0.77
         TimeDeltaEx(0, 0, 39)
-        >>> 0.77 * TimeDeltaEx(microseconds = 50)
+        >>> 0.77 * TimeDeltaEx(microseconds=50)
         TimeDeltaEx(0, 0, 39)
 
-        @type other: numbers.Number
+        @type n: numbers.Number
         @rtype: TimeDeltaEx
         """
         if isinstance(n, numbers.Number):
@@ -387,19 +387,30 @@ class TimeDeltaEx(timedelta, numbers.Real):
         TimeEx(3, 4, 55)
         >>> TimeEx(23, 44, 55) + TimeDeltaEx(hours = 3, minutes = 20)
         TimeEx(3, 4, 55)
+        >>> time(23, 44, 55, tzinfo=DummyTZInfo()) + TimeDeltaEx(hours=3, minutes=20)
+        TimeEx(3, 4, 55, tzinfo=<DummyTZInfo>)
+        >>> TimeEx(23, 44, 55, tzinfo=DummyTZInfo()) + TimeDeltaEx(hours=3, minutes =20)
+        TimeEx(3, 4, 55, tzinfo=<DummyTZInfo>)
 
-        >>> TimeDeltaEx(hours = 3, minutes = 20) + time(23, 44, 55)
+        >>> TimeDeltaEx(hours=3, minutes=20) + time(23, 44, 55)
         TimeEx(3, 4, 55)
-        >>> TimeDeltaEx(hours = 3, minutes = 20) + TimeEx(23, 44, 55)
+        >>> TimeDeltaEx(hours=3, minutes=20) + TimeEx(23, 44, 55)
         TimeEx(3, 4, 55)
+        >>> TimeDeltaEx(hours=3, minutes=20) + time(23, 44, 55, tzinfo=DummyTZInfo())
+        TimeEx(3, 4, 55, tzinfo=<DummyTZInfo>)
+        >>> TimeDeltaEx(hours=3, minutes=20) + TimeEx(23, 44, 55, tzinfo=DummyTZInfo())
+        TimeEx(3, 4, 55, tzinfo=<DummyTZInfo>)
 
         >>> TimeDeltaEx(3, 14, 15, 92) + timedelta(2, 71, 82, 81)
         TimeDeltaEx(5, 85, 173097)
         >>> timedelta(2, 71, 82, 81) + TimeDeltaEx(3, 14, 15, 92)
         TimeDeltaEx(5, 85, 173097)
+
+        @type summand: date, datetime, time, timedelta
+        @rtype: TimeDeltaEx
         """
         assert isinstance(summand, (date, datetime, time, timedelta)), \
-               repr(td)
+               repr(summand)
 
         if isinstance(summand, date):
             # TODO
@@ -408,13 +419,8 @@ class TimeDeltaEx(timedelta, numbers.Real):
             # TODO
             raise NotImplementedError("Not yet implemented!")
         elif isinstance(summand, time):
-            if isinstance(summand, TimeEx):
-                # Shortcut
-                return TimeEx.from_microseconds(self.in_microseconds +
-                                                summand.in_microseconds)
-            else:
-                return TimeEx.from_microseconds(self.in_microseconds +
-                                                TimeEx.from_time(summand).in_microseconds)
+            return TimeEx.from_microseconds(self.in_microseconds + t_to_mus(summand),
+                                            tzinfo=summand.tzinfo)
         elif isinstance(summand, timedelta):
             return TimeDeltaEx.from_microseconds(td_to_mus(self) + td_to_mus(summand))
         else:
@@ -431,6 +437,9 @@ class TimeDeltaEx(timedelta, numbers.Real):
         TimeDeltaEx(0, 86333, 10933)
         >>> TimeDeltaEx(2, 71, 82, 81) - timedelta(3, 4, 15, 92)
         TimeDeltaEx(-1, 66, 989067)
+
+        @type subtrahend: timedelta
+        @rtype: TimeDeltaEx
         """
         if isinstance(subtrahend, timedelta):
             return TimeDeltaEx.from_microseconds(self.in_microseconds -
@@ -443,7 +452,7 @@ class TimeDeltaEx(timedelta, numbers.Real):
         """
         This TimeDeltaEx is subtracted from the datetime.date, datetime.datetime,
         datetime.time (with possible wrapping at the midnight),
-        or  datetime.timedelta.
+        or datetime.timedelta.
 
         Whenever the minuend is the datetime.date,
         the result is automatically enhanced from datetime.date to DateEx.
@@ -462,37 +471,38 @@ class TimeDeltaEx(timedelta, numbers.Real):
         TimeEx(3, 4, 12, 918021)
         >>> TimeEx(3, 4, 15, 92) - TimeDeltaEx(2, 71, 82, 81)
         TimeEx(3, 3, 3, 919010)
+        >>> TimeEx(3, 4, 15, 92, tzinfo=DummyTZInfo()) - TimeDeltaEx(2, 71, 82, 81)
+        TimeEx(3, 3, 3, 919010, tzinfo=<DummyTZInfo>)
 
         >>> time(3, 4, 15, 92) - TimeDeltaEx(0, 2, 71, 82)
         TimeEx(3, 4, 12, 918021)
         >>> time(3, 4, 15, 92) - TimeDeltaEx(2, 71, 82, 81)
         TimeEx(3, 3, 3, 919010)
+        >>> time(3, 4, 15, 92, tzinfo=DummyTZInfo()) - TimeDeltaEx(2, 71, 82, 81)
+        TimeEx(3, 3, 3, 919010, tzinfo=<DummyTZInfo>)
 
         >>> timedelta(3, 4, 15, 92) - TimeDeltaEx(2, 71, 82, 81)
         TimeDeltaEx(0, 86333, 10933)
         >>> timedelta(2, 71, 82, 81) - TimeDeltaEx(3, 4, 15, 92)
         TimeDeltaEx(-1, 66, 989067)
+
+        @type minuend: date, datetime, time, timedelta
+        @rtype: date, datetime, time, timedelta
         """
-        if isinstance(minuend, time):
-            if isinstance(minuend, TimeEx):
-                # Shortcut
-                return TimeEx.from_microseconds(minuend.in_microseconds -
-                                                self.in_microseconds)
-            else:
-                return TimeEx.from_microseconds(TimeEx.from_time(minuend).in_microseconds -
-                                                self.in_microseconds)
-        elif isinstance(minuend, timedelta):
-            return TimeDeltaEx.from_microseconds(td_to_mus(minuend) -
-                                                 self.in_microseconds)
-        elif isinstance(minuend, date):
+        if isinstance(minuend, date):
             # TODO
             raise NotImplementedError("Not yet implemented!")
         elif isinstance(minuend, datetime):
             # TODO
             raise NotImplementedError("Not yet implemented!")
+        elif isinstance(minuend, time):
+            return TimeEx.from_microseconds(t_to_mus(minuend) - self.in_microseconds,
+                                            tzinfo=minuend.tzinfo)
+        elif isinstance(minuend, timedelta):
+            return TimeDeltaEx.from_microseconds(td_to_mus(minuend) -
+                                                 self.in_microseconds)
         else:
             raise NotImplementedError("{0!r} - {1!r}".format(minuend, self))
-
 
 
 # Run unittests, if executed directly.

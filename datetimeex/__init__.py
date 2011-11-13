@@ -20,6 +20,6 @@ if __name__ == "__main__":
     # Test this module
     doctest.testmod()
     # Test all the imported modules
-    for modname in ("_common", "_timeex", "_timedeltaex"):
+    for modname in ("_common", "_datetimeex", "_timeex", "_timedeltaex"):
         mod = __import__(modname)
         doctest.testmod(mod)
