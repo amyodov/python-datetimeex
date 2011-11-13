@@ -1,2 +1,2 @@
 include LICENSE.txt INSTALL.txt
-recursive-include test *.py
+recursive-include *.py
