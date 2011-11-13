@@ -9,13 +9,13 @@ from fractions import Fraction
 from _common import (MICROSECONDS_IN_SECOND, MICROSECONDS_IN_MINUTE,
                      MICROSECONDS_IN_HOUR, MICROSECONDS_IN_DAY,
                      t_to_mus, mus_to_t, td_to_mus, mus_to_td,
-                     _PY3K)
+                     _PY3K, DummyTZInfo)
 
 
 
 class TimeEx(time):
     """
-    Enhanced datetime.Time, with various additional operations.
+    Enhanced datetime.time, with various additional operations.
     """
     __slots__ = ()
 
@@ -23,29 +23,44 @@ class TimeEx(time):
     def __repr__(self):
         """
         >>> TimeEx(0)
-        TimeEx(0)
+        TimeEx(0, 0)
+        >>> TimeEx(0, tzinfo=DummyTZInfo())
+        TimeEx(0, 0, tzinfo=<DummyTZInfo>)
+
         >>> TimeEx(3)
-        TimeEx(3)
+        TimeEx(3, 0)
+        >>> TimeEx(3, tzinfo=DummyTZInfo())
+        TimeEx(3, 0, tzinfo=<DummyTZInfo>)
+
         >>> TimeEx(3, 14)
         TimeEx(3, 14)
+        >>> TimeEx(3, 14, tzinfo=DummyTZInfo())
+        TimeEx(3, 14, tzinfo=<DummyTZInfo>)
+
         >>> TimeEx(3, 14, 15)
         TimeEx(3, 14, 15)
+        >>> TimeEx(3, 14, 15, tzinfo=DummyTZInfo())
+        TimeEx(3, 14, 15, tzinfo=<DummyTZInfo>)
+
         >>> TimeEx(3, 14, 15, 92)
         TimeEx(3, 14, 15, 92)
+        >>> TimeEx(3, 14, 15, 92, tzinfo=DummyTZInfo())
+        TimeEx(3, 14, 15, 92, tzinfo=<DummyTZInfo>)
         """
+        tzinfo = "" if self.tzinfo is None \
+                    else ", tzinfo={0!r}".format(self.tzinfo)
         if not self.microsecond:
             if not self.second:
-                if not self.minute:
-                    return "TimeEx({0:d})".format(self.hour)
-                else:
-                    return "TimeEx({0:d}, {1:d})".format(self.hour, self.minute)
+                return "TimeEx({0:d}, {1:d}{2:s})"\
+                           .format(self.hour, self.minute, tzinfo)
             else:
-                return "TimeEx({0:d}, {1:d}, {2:d})"\
-                           .format(self.hour, self.minute, self.second)
+                return "TimeEx({0:d}, {1:d}, {2:d}{3:s})"\
+                           .format(self.hour, self.minute, self.second, tzinfo)
         else:
-            return "TimeEx({0:d}, {1:d}, {2:d}, {3:d})"\
+            return "TimeEx({0:d}, {1:d}, {2:d}, {3:d}{4:s})"\
                        .format(self.hour, self.minute,
-                               self.second, self.microsecond)
+                               self.second, self.microsecond,
+                               tzinfo)
 
 
     FORMAT_STRING = "%H:%M:%S.%f"
@@ -62,7 +77,9 @@ class TimeEx(time):
         >>> TimeEx(3, 14, 15, 92).as_time()
         datetime.time(3, 14, 15, 92)
         """
-        return time(self.hour, self.minute, self.second, self.microsecond)
+        return time(self.hour, self.minute,
+                    self.second, self.microsecond,
+                    self.tzinfo)
 
 
     @classmethod
@@ -72,6 +89,9 @@ class TimeEx(time):
 
         >>> TimeEx.from_time(time(3, 14, 15, 92))
         TimeEx(3, 14, 15, 92)
+
+        >>> TimeEx.from_time(time(3, 14, 15, 92, DummyTZInfo()))
+        TimeEx(3, 14, 15, 92, tzinfo=<DummyTZInfo>)
         """
         return cls(t.hour, t.minute, t.second, t.microsecond, t.tzinfo)
 

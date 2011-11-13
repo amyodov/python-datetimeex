@@ -15,7 +15,7 @@ from _timeex import TimeEx
 
 class TimeDeltaEx(timedelta, numbers.Real):
     """
-    Enhanced datetime.TimeDelta, with various additional operations.
+    Enhanced datetime.timedelta, with various additional operations.
     """
     __slots__ = ()
 

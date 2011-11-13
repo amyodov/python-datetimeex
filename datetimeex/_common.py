@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import numbers, sys
-from datetime import date, datetime, time, timedelta
+from datetime import date, datetime, time, timedelta, tzinfo
 
 MICROSECONDS_IN_SECOND = 1000000
 MICROSECONDS_IN_MINUTE = MICROSECONDS_IN_SECOND * 60
@@ -123,6 +123,11 @@ def mus_to_td(microseconds):
 
 if _PY3K:
     exec("µs_to_td = mus_to_td")
+
+
+class DummyTZInfo(tzinfo):
+    def __repr__(self):
+        return "<DummyTZInfo>"
 
 
 # Run unittests, if executed directly.
